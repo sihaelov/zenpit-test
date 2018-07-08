@@ -12,7 +12,7 @@ body{
 
   font-family: 'Roboto', sans-serif;
   font-weight: normal;
-  color: rgba(0,0,0,0.87);
+  color: rgba(0, 0, 0, 0.87);
 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

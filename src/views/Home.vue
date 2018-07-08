@@ -1,7 +1,7 @@
 <template>
   <div class="home">
 
-    <el-form ref="form" :model="form" :inline="true" @submit.native.prevent="onSubmit">
+    <el-form ref="form" :model="form" :inline="true" @submit.native.prevent="getData">
       <el-form-item>
         <el-input v-model="form.brand" placeholder="Brand" clearable></el-input>
       </el-form-item>
@@ -28,10 +28,11 @@
       </div>
     </div> <!-- /.device-list -->
 
+    <!-- details of a clicked device -->
     <el-dialog
       v-if="currentDevice"
       :title="currentDevice.DeviceName"
-      :visible="isDialogVisible"
+      :visible="Boolean(currentDevice)"
       custom-class="device-details"
       :before-close="handleCloseDialog"
       top="none"
@@ -46,8 +47,12 @@
 
 <script>
 
+import Vue from 'vue';
 import axios from 'axios';
-import { Button, Card, Input, Form, FormItem, Dialog } from 'element-ui';
+import { Button, Card, Input, Form, FormItem, Dialog, Loading, Notification } from 'element-ui';
+
+Vue.use(Loading.directive);
+Vue.prototype.$notify = Notification;
 
 const TOKEN = 'fa97075e8d63d1493ee46c42c991868209908d34082d8bf3';
 
@@ -73,12 +78,21 @@ export default {
     };
   },
   methods: {
+    // close a modal window with details of a clicked device
     handleCloseDialog(done) {
       this.currentDevice = null;
       done();
     },
-
+    // open a modal window with details of a clicked device
+    chooseDevice(device) {
+      if (!this.currentDevice) {
+        this.currentDevice = device;
+      }
+    },
+    // load data from fonoapi
     getData() {
+      // if a load already is started then show a notification about it
+      // and skip the start of a new load
       if (this.isLoading) {
         this.$notify.info({
           title: 'Please wait',
@@ -89,6 +103,8 @@ export default {
       this.isLoading = true;
       this.deviceList = [];
 
+      // the `getdevice` endpoint requires `device` in params,
+      // while the `getlatest` does not accept it
       let requestUrl = 'https://fonoapi.freshpixl.com/v1/';
       requestUrl += !this.form.device ? 'getlatest' : 'getdevice';
 
@@ -112,26 +128,10 @@ export default {
           this.isLoading = false;
         });
     },
-    onSubmit() {
-      this.$refs.form.validate((valid) => {
-        if (valid) {
-          this.getData();
-        }
-        return false;
-      });
-    },
-    chooseDevice(device) {
-      if (!this.currentDevice) {
-        this.currentDevice = device;
-      }
-    },
-  },
-  computed: {
-    isDialogVisible() {
-      return Boolean(this.currentDevice);
-    },
   },
   mounted() {
+    // fonoapi returns errors with status: 200 and axios cannot handle them
+    // this interceptor fixes it
     axios.interceptors.response.use((response) => {
       if (response.data.status === 'error') {
         return Promise.reject(response);
@@ -139,6 +139,7 @@ export default {
       return response;
     });
 
+    // run the first load of devices
     this.getData();
   },
 };
